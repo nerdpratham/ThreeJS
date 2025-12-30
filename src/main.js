@@ -1,99 +1,79 @@
 import * as THREE from 'three'
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass'
 
-import './style.css'
-import Grid from './grid.js'
-
-// =====================
-// SCENE
-// =====================
+// Scene
 const scene = new THREE.Scene()
-scene.background = new THREE.Color(0x050508)
 
-// =====================
-// CAMERA
-// =====================
+// Camera
 const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
   100
 )
-camera.position.set(0, 0, 7)
+camera.position.z = 4
 
-// =====================
-// RENDERER
-// =====================
-const canvas = document.querySelector('#webgl')
+// Renderer
 const renderer = new THREE.WebGLRenderer({
-  canvas,
   antialias: true,
+  alpha: true
 })
 renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.toneMapping = THREE.ReinhardToneMapping
-renderer.toneMappingExposure = 1.2
+document.body.appendChild(renderer.domElement)
 
-// =====================
-// LIGHTS
-// =====================
-scene.add(new THREE.AmbientLight(0xffffff, 0.3))
+// Cube
+const geometry = new THREE.BoxGeometry(1, 4, 1)
+const material = new THREE.MeshStandardMaterial({
+  color: 0x6366f1,
+  roughness: 0.4,
+  metalness: 0.5
+})
+const cube = new THREE.Mesh(geometry, material)
+scene.add(cube)
 
-const pointLight = new THREE.PointLight(0x00ffff, 2, 20)
-pointLight.position.set(2, 2, 4)
-scene.add(pointLight)
+// Lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.6))
 
-// =====================
-// OBJECT  (CRITICAL)
-// =====================
-const torus = new Grid()
-scene.add(torus.mesh)
+const dirLight = new THREE.DirectionalLight(0xffffff, 1)
+dirLight.position.set(3, 3, 3)
+scene.add(dirLight)
 
-// =====================
-// MOUSE
-// =====================
-const mouse = { x: 0, y: 0 }
+// Mouse state (normalized)
+const mouse = {
+  x: 0,
+  y: 0
+}
 
 window.addEventListener('mousemove', (event) => {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
 })
 
-// =====================
-// POST PROCESSING
-// =====================
-const composer = new EffectComposer(renderer)
-composer.addPass(new RenderPass(scene, camera))
-
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  1.5,
-  0.4,
-  0.2
-)
-composer.addPass(bloomPass)
-
-// =====================
-// RESIZE
-// =====================
+// Resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
+
   renderer.setSize(window.innerWidth, window.innerHeight)
-  composer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
 
-// =====================
-// LOOP
-// =====================
+// Animation
 const clock = new THREE.Clock()
 
-function animate() {
+const animate = () => {
   const time = clock.getElapsedTime()
-  torus.update(time, mouse)
-  composer.render()
+
+  // 🔁 CONSTANT cube animation (independent)
+  cube.rotation.x = time * 0.5
+  cube.rotation.y = time * 0.8
+
+  // 🎥 Camera parallax (cursor controls perspective)
+  camera.position.x += (mouse.x * 1.5 - camera.position.x) * 0.05
+  camera.position.y += (mouse.y * 1.5 - camera.position.y) * 0.05
+  camera.lookAt(scene.position)
+
+  renderer.render(scene, camera)
   requestAnimationFrame(animate)
 }
 
