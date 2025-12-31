@@ -1,80 +1,43 @@
+import './style.css'
 import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 // Scene
 const scene = new THREE.Scene()
+scene.background = new THREE.Color(0x0b1020) 
 
 // Camera
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  100
-)
-camera.position.z = 4
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+camera.position.z = 5
 
 // Renderer
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  alpha: true
-})
+const renderer = new THREE.WebGLRenderer({ antialias: true })
 renderer.setSize(window.innerWidth, window.innerHeight)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-document.body.appendChild(renderer.domElement)
+document.getElementById('app').appendChild(renderer.domElement)
 
 // Cube
-const geometry = new THREE.BoxGeometry(1, 4, 1)
-const material = new THREE.MeshStandardMaterial({
-  color: 0x6366f1,
-  roughness: 0.4,
-  metalness: 0.5
-})
+const geometry = new THREE.BoxGeometry()
+const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
 const cube = new THREE.Mesh(geometry, material)
 scene.add(cube)
 
-// Lights
-scene.add(new THREE.AmbientLight(0xffffff, 0.6))
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 1)
-dirLight.position.set(3, 3, 3)
-scene.add(dirLight)
-
-// Mouse state (normalized)
-const mouse = {
-  x: 0,
-  y: 0
+// Animate
+function animate() {
+  requestAnimationFrame(animate)
+  cube.rotation.x += 0.01
+  cube.rotation.y += 0.01
+  controls.update()
+  renderer.render(scene, camera)
 }
-
-window.addEventListener('mousemove', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
-})
+animate()
 
 // Resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
-
   renderer.setSize(window.innerWidth, window.innerHeight)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
-
-// Animation
-const clock = new THREE.Clock()
-
-const animate = () => {
-  const time = clock.getElapsedTime()
-
-  // 🔁 CONSTANT cube animation (independent)
-  cube.rotation.x = time * 0.5
-  cube.rotation.y = time * 0.8
-
-  // 🎥 Camera parallax (cursor controls perspective)
-  camera.position.x += (mouse.x * 1.5 - camera.position.x) * 0.05
-  camera.position.y += (mouse.y * 1.5 - camera.position.y) * 0.05
-  camera.lookAt(scene.position)
-
-  renderer.render(scene, camera)
-  requestAnimationFrame(animate)
-}
-
-animate()

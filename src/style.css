@@ -4,11 +4,15 @@
   box-sizing: border-box;
 }
 
-canvas {
-  display: block;
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* critical */
+  background: #0b1020;
 }
 
-body {
-  overflow: hidden;
-  background: #0f172a;
+#app {
+  width: 100%;
+  height: 100%;
 }
