@@ -4,8 +4,8 @@ import * as THREE from 'three'
 /* ─── tunables ─────────────────────────────────────────────────────── */
 const IMG_SRC        = '/Hut.png'
 const BRIGHTNESS_THR = 30       // 0-255: pixels darker than this are skipped
-const SAMPLE_STEP    = 6         // sample every N pixels (1 = every pixel)
-const PARTICLE_SIZE  = 0.044
+const SAMPLE_STEP    = 2         // sample every N pixels (1 = every pixel)
+const PARTICLE_SIZE  = 0.012
 const SCATTER_RANGE  = 6         // initial explosion radius
 const EASING         = 0.06      // lerp speed toward target
 const SCROLL_SPEED   = 0.0012
@@ -22,7 +22,7 @@ export default function Hut() {
 
     /* ── Scene ── */
     const scene    = new THREE.Scene()
-    scene.background = new THREE.Color(0x05070c)
+    scene.background = new THREE.Color(0x0a0a0f)
 
     /* ── Camera ── */
     const camera = new THREE.PerspectiveCamera(
@@ -44,7 +44,7 @@ export default function Hut() {
     let progress             = 0
     let targetCameraProgress = 0
     let cameraProgress       = 0
-
+      
     const onWheel = (e) => {
       if (targetProgress < 0.998) {
         // Stage 1: fill particle progress first
@@ -61,20 +61,7 @@ export default function Hut() {
     /* ── Load image → sample pixels → build geometry ── */
     let points, animFrameId
     let scattered, target, jitterSeeds
-
-    const particleCanvas = document.createElement('canvas')
-    particleCanvas.width = 64
-    particleCanvas.height = 64
-
-    const particleCtx = particleCanvas.getContext('2d')
-    particleCtx.beginPath()
-    particleCtx.arc(32, 32, 24, 0, Math.PI * 2)
-    particleCtx.fillStyle = '#ffffff'
-    particleCtx.fill()
-
-    const particleTexture = new THREE.CanvasTexture(particleCanvas)
-    particleTexture.colorSpace = THREE.SRGBColorSpace
-
+    
     const img = new Image()
     img.src = IMG_SRC
 
@@ -141,14 +128,11 @@ export default function Hut() {
 
       const mat = new THREE.PointsMaterial({
         size:            PARTICLE_SIZE,
-        map:             particleTexture,
-        alphaMap:        particleTexture,
         vertexColors:    true,
         sizeAttenuation: true,
         transparent:     true,
-        opacity:         1,
+        opacity:         0.9,
         depthWrite:      false,
-        alphaTest:       0.2,
       })
 
       points = new THREE.Points(geo, mat)
@@ -183,7 +167,7 @@ export default function Hut() {
         geo.attributes.position.needsUpdate = true
 
         /* opacity fade-in as particles dissolve into place */
-        mat.opacity = 0.7 + progress * 0.3
+        mat.opacity = 0.5 + progress * 0.5
 
         /* ── Camera pan ─────────────────────────────────────────────────
            Starts only after particles have fully converged (Stage 2).
@@ -221,7 +205,6 @@ export default function Hut() {
       cancelAnimationFrame(animFrameId)
       window.removeEventListener('wheel',  onWheel)
       window.removeEventListener('resize', onResize)
-      particleTexture.dispose()
       renderer.dispose()
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
     }

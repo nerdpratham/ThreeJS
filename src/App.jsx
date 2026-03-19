@@ -1,7 +1,7 @@
-import Hut from './Hut';
+import Map from './map';
 
 function App() {
-  return <Hut />;
+  return <Map />;
 }
 
 export default App;
