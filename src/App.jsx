@@ -1,7 +1,7 @@
-import Map from './map';
+import Map2 from './Map2';
 
 function App() {
-  return <Map />;
+  return <Map2 />;
 }
 
 export default App;
