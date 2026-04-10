@@ -1,8 +1,7 @@
-import Map2 from './Map2';
+import LandingPage from './pages/LandingPage';
 
 function App() {
-  return <Map2 />;
+  return <LandingPage />;
 }
 
 export default App;
-
