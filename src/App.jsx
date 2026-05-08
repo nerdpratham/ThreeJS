@@ -1,7 +1,7 @@
-import PerfumePage from './pages/perfume';
+import ThumbnailPage from './pages/thumbnail';
 
 function App() {
-  return <PerfumePage />;
+  return <ThumbnailPage />;
 }
 
 export default App;
