@@ -14,12 +14,15 @@ const DistortionMaterial = shaderMaterial(
     u_time: 0,
     u_planeResolution: new THREE.Vector2(1, 1),
     u_videoResolution: new THREE.Vector2(1, 1),
+    u_wave_progress: 0,
   },
   // Vertex Shader
   `
     varying vec2 vUv;
     uniform float u_hover;
     uniform vec2 u_mouse;
+    uniform float u_wave_progress;
+    uniform float u_time;
 
     void main() {
       vUv = uv;
@@ -28,7 +31,15 @@ const DistortionMaterial = shaderMaterial(
       // Subtle bulge effect towards the camera based on distance to mouse
       float dist = distance(uv, u_mouse);
       float bulge = smoothstep(0.8, 0.0, dist) * u_hover * 0.15;
-      pos.z += bulge;
+      
+      // Single big sweeping wave
+      float wavePos = u_wave_progress * 4.0 - 1.0;
+      float distToWave = abs((vUv.x + vUv.y) - wavePos);
+      float waveCrest = smoothstep(0.8, 0.0, distToWave);
+      
+      float waveZ = waveCrest * 0.6;
+      
+      pos.z += bulge + waveZ;
       
       gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
     }
@@ -42,6 +53,7 @@ const DistortionMaterial = shaderMaterial(
     uniform vec2 u_mouse;
     uniform vec2 u_planeResolution;
     uniform vec2 u_videoResolution;
+    uniform float u_wave_progress;
 
     void main() {
       // Background cover logic (object-fit: cover)
@@ -55,7 +67,6 @@ const DistortionMaterial = shaderMaterial(
         vUv.y * ratio.y + (1.0 - ratio.y) * 0.5
       );
       
-      // We need to account for the aspect ratio when calculating distance for the ripple
       vec2 aspectUv = baseUv;
       aspectUv.x *= u_planeResolution.x / u_planeResolution.y;
       
@@ -64,23 +75,36 @@ const DistortionMaterial = shaderMaterial(
       
       float dist = distance(aspectUv, aspectMouse);
       
-      // Create a fluid, premium wave ripple originating from the mouse
-      // We use sine waves multiplied by smoothstep to confine it to the mouse area
-      float wave = sin(dist * 15.0 - u_time * 4.0) * 0.015 * u_hover * smoothstep(0.6, 0.0, dist);
+      // Local mouse ripple
+      float mouseWave = sin(dist * 15.0 - u_time * 4.0) * 0.015 * u_hover * smoothstep(0.6, 0.0, dist);
+      
+      // Single big sweeping wave math
+      float wavePos = u_wave_progress * 4.0 - 1.0;
+      float distToWave = abs((vUv.x + vUv.y) - wavePos);
+      float waveCrest = smoothstep(0.8, 0.0, distToWave);
+      float wavePeak = smoothstep(0.35, 0.0, distToWave); // Wider peak for the white effect
+      
+      float globalWave = waveCrest * 0.1;
       
       // Displace UVs
       vec2 dir = normalize(aspectUv - aspectMouse);
-      vec2 distortedUv = baseUv + dir * wave;
+      vec2 globalDir = normalize(vec2(1.0, 1.0));
       
-      // Add a slight RGB shift on the edges of the distortion
-      float r = texture2D(u_tex, distortedUv + dir * wave * 0.5).r;
+      vec2 distortedUv = baseUv + dir * mouseWave - globalDir * globalWave;
+      
+      // RGB shift
+      float totalWave = mouseWave + globalWave;
+      float r = texture2D(u_tex, distortedUv + vec2(totalWave * 0.5)).r;
       float g = texture2D(u_tex, distortedUv).g;
-      float b = texture2D(u_tex, distortedUv - dir * wave * 0.5).b;
+      float b = texture2D(u_tex, distortedUv - vec2(totalWave * 0.5)).b;
       vec4 texColor = vec4(r, g, b, 1.0);
       
-      // Slight brightness lift on hover to make it feel "alive"
+      // Brightness lift
       float brightness = 1.0 + (u_hover * 0.1);
       texColor.rgb *= brightness;
+      
+      // White kind of effect at the wave peak
+      texColor.rgb = mix(texColor.rgb, vec3(1.0), wavePeak * 0.5 + waveCrest * 0.15);
       
       gl_FragColor = texColor;
     }
@@ -92,6 +116,7 @@ extend({ DistortionMaterial });
 
 const WebGLVideoScene = ({ videoSrc, isHovered, mousePos }) => {
   const materialRef = useRef();
+  const tlRef = useRef();
   const [video, setVideo] = useState(null);
   const [videoTexture, setVideoTexture] = useState(null);
   const [videoRes, setVideoRes] = useState([1, 1]);
@@ -138,13 +163,34 @@ const WebGLVideoScene = ({ videoSrc, isHovered, mousePos }) => {
     if (!video || !materialRef.current) return;
 
     if (isHovered) {
-      video.play().catch(e => console.warn("Video autoplay prevented", e));
+      if (tlRef.current) tlRef.current.kill();
+      
+      tlRef.current = gsap.timeline({
+        onComplete: () => {
+          video.play().catch(e => console.warn("Video autoplay prevented", e));
+        }
+      });
+
+      tlRef.current.to(materialRef.current.uniforms.u_wave_progress, {
+        value: 1,
+        duration: 2.0, // Slower wave
+        ease: 'power2.inOut',
+      });
+
       gsap.to(materialRef.current.uniforms.u_hover, {
         value: 1,
         duration: 0.8,
         ease: 'power3.out',
       });
     } else {
+      if (tlRef.current) tlRef.current.kill();
+      
+      gsap.to(materialRef.current.uniforms.u_wave_progress, {
+        value: 0,
+        duration: 0.8,
+        ease: 'power2.out',
+      });
+
       gsap.to(materialRef.current.uniforms.u_hover, {
         value: 0,
         duration: 0.8,
