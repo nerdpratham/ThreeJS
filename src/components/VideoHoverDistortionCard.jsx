@@ -35,7 +35,7 @@ const DistortionMaterial = shaderMaterial(
       // Single big sweeping wave
       float wavePos = u_wave_progress * 4.0 - 1.0;
       float distToWave = abs((vUv.x + vUv.y) - wavePos);
-      float waveCrest = smoothstep(0.8, 0.0, distToWave);
+      float waveCrest = smoothstep(1.2, 0.0, distToWave); // Wider and softer
       
       float waveZ = waveCrest * 0.6;
       
@@ -81,10 +81,10 @@ const DistortionMaterial = shaderMaterial(
       // Single big sweeping wave math
       float wavePos = u_wave_progress * 4.0 - 1.0;
       float distToWave = abs((vUv.x + vUv.y) - wavePos);
-      float waveCrest = smoothstep(0.8, 0.0, distToWave);
-      float wavePeak = smoothstep(0.35, 0.0, distToWave); // Wider peak for the white effect
+      float waveCrest = smoothstep(1.2, 0.0, distToWave); // Much wider, softer falloff
+      float wavePeak = pow(smoothstep(0.6, 0.0, distToWave), 1.5); // Smoother gradient peak
       
-      float globalWave = waveCrest * 0.1;
+      float globalWave = waveCrest * 0.08; // Slightly less aggressive distortion
       
       // Displace UVs
       vec2 dir = normalize(aspectUv - aspectMouse);
@@ -104,7 +104,7 @@ const DistortionMaterial = shaderMaterial(
       texColor.rgb *= brightness;
       
       // White kind of effect at the wave peak
-      texColor.rgb = mix(texColor.rgb, vec3(1.0), wavePeak * 0.5 + waveCrest * 0.15);
+      texColor.rgb = mix(texColor.rgb, vec3(1.0), wavePeak * 0.4 + waveCrest * 0.1);
       
       gl_FragColor = texColor;
     }
@@ -174,7 +174,7 @@ const WebGLVideoScene = ({ videoSrc, isHovered, mousePos }) => {
       tlRef.current.to(materialRef.current.uniforms.u_wave_progress, {
         value: 1,
         duration: 2.0, // Slower wave
-        ease: 'power2.inOut',
+        ease: 'sine.inOut', // Smoother, more natural ease for waves
       });
 
       gsap.to(materialRef.current.uniforms.u_hover, {
