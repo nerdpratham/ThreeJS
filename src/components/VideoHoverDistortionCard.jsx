@@ -37,7 +37,7 @@ const DistortionMaterial = shaderMaterial(
       float distToWave = abs((vUv.x + vUv.y) - wavePos);
       float waveCrest = smoothstep(1.2, 0.0, distToWave); // Wider and softer
       
-      float waveZ = waveCrest * 0.6;
+      float waveZ = waveCrest * 0.2;
       
       pos.z += bulge + waveZ;
       
@@ -76,7 +76,7 @@ const DistortionMaterial = shaderMaterial(
       float dist = distance(aspectUv, aspectMouse);
       
       // Local mouse ripple
-      float mouseWave = sin(dist * 15.0 - u_time * 4.0) * 0.015 * u_hover * smoothstep(0.6, 0.0, dist);
+      float mouseWave = sin(dist * 8.0 - u_time * 2.0) * 0.007 * u_hover * smoothstep(0.6, 0.0, dist);
       
       // Single big sweeping wave math
       float wavePos = u_wave_progress * 4.0 - 1.0;
@@ -92,19 +92,14 @@ const DistortionMaterial = shaderMaterial(
       
       vec2 distortedUv = baseUv + dir * mouseWave - globalDir * globalWave;
       
-      // RGB shift
-      float totalWave = mouseWave + globalWave;
-      float r = texture2D(u_tex, distortedUv + vec2(totalWave * 0.5)).r;
-      float g = texture2D(u_tex, distortedUv).g;
-      float b = texture2D(u_tex, distortedUv - vec2(totalWave * 0.5)).b;
-      vec4 texColor = vec4(r, g, b, 1.0);
+      vec4 texColor = texture2D(u_tex, distortedUv);
       
       // Brightness lift
       float brightness = 1.0 + (u_hover * 0.1);
       texColor.rgb *= brightness;
       
-      // White kind of effect at the wave peak
-      texColor.rgb = mix(texColor.rgb, vec3(1.0), wavePeak * 0.4 + waveCrest * 0.1);
+      // Subtle brightness lift at the wave peak
+      texColor.rgb = mix(texColor.rgb, vec3(1.0), wavePeak * 0.15 + waveCrest * 0.05);
       
       gl_FragColor = texColor;
     }
@@ -187,8 +182,8 @@ const WebGLVideoScene = ({ videoSrc, isHovered, mousePos }) => {
       
       gsap.to(materialRef.current.uniforms.u_wave_progress, {
         value: 0,
-        duration: 0.8,
-        ease: 'power2.out',
+        duration: 2.0,
+        ease: 'sine.inOut',
       });
 
       gsap.to(materialRef.current.uniforms.u_hover, {
